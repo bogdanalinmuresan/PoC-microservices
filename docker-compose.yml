@@ -1,0 +1,118 @@
+version: '3.1'
+
+services:
+
+  #Kafka service
+  kafka:
+    image: fjahijado/kafka
+    environment:
+      - STORAGE_TYPE=mem
+    ports:
+      - 9092:9092
+    networks:
+      - services
+    container_name: kafka
+
+  #Zipkin service
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - 9411:9411
+    container_name: zipkin
+
+  # Jaeger service
+  jaeger:
+    image: jaegertracing/all-in-one
+    ports:
+      - 5775:5775/udp
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 14268:14268
+    networks:
+      - services
+    container_name: jaeger
+
+  # Config service
+  config:
+    build:
+      context: msa-poc-microservices-config/msa-poc-microservices-config-service/target/docker
+    ports:
+      - 8888:8888
+    networks:
+      - services
+    container_name: config
+
+  # Postgres service
+  postgres:
+    build:
+      context: postgres/docker
+    ports:
+      - 5432:5432
+    networks:
+      - services
+    container_name: postgres
+
+  #
+  # ----- MICROSERVICES -----
+  #
+
+  # User microservice
+  user:
+    build:
+      context: msa-poc-microservices-user/msa-poc-microservices-user-service/target/docker
+    ports:
+      - 8095:8095
+    environment: 
+      - JAEGER_SERVICE_NAME=user
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831     
+      - JAEGER_SAMPLER_MANAGER_HOST_PORT=jaeger:5778
+    depends_on:
+      - postgres
+      - config
+    networks:
+      - services
+    container_name: user
+
+  # Communication microservice
+  communication:
+    build:
+      context: msa-poc-microservices-communication/msa-poc-microservices-communication-service/target/docker
+    ports:
+      - 8090:8090
+    environment: 
+      - JAEGER_SERVICE_NAME=communication
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831     
+      - JAEGER_SAMPLER_MANAGER_HOST_PORT=jaeger:5778
+    depends_on:
+      - config
+      - zipkin
+    networks:
+      - services
+    container_name: communication
+
+  # Messaging microservice
+  messaging:
+    build:
+      context: msa-poc-microservices-messaging/msa-poc-microservices-messaging-service/target/docker
+    ports:
+      - 8070:8070
+    environment: 
+      - JAEGER_SERVICE_NAME=messaging
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831     
+      - JAEGER_SAMPLER_MANAGER_HOST_PORT=jaeger:5778
+    depends_on:
+      - config
+      - zipkin
+    networks:
+      - services
+    container_name: messaging
+
+  # Networks
+networks:
+  services:
+  

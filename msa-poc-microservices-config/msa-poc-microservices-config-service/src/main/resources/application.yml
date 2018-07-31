@@ -1,0 +1,25 @@
+server:
+  port: @docker.exposePort@
+  
+spring:
+  application:
+    name: config
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/bogdanalinmuresan/config-repo
+          force-pull: true
+     
+          # if repo is private you need user and pass
+#          username: 
+#          password:
+
+management:
+  endpoints:
+    jmx:
+      exposure:
+        include: health,info  # more info -> https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html
+
+          
+     

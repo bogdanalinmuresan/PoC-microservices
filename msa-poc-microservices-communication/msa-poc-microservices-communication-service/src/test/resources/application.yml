@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: communication
+    
+con:
+   prueba: hola
+
+ust:
+  messaging:
+    service:
+      url: http://messaging:8070/messaging/
